@@ -4,46 +4,41 @@ use std::{
 };
 
 use async_timer::Interval;
-use dioxus::{core::to_owned, prelude::*};
+use dioxus:: prelude::*; 
 use nalgebra::Vector2;
 
 fn main() {
-    dioxus::web::launch(app);
+    launch(app);
 }
 
-fn app(cx: Scope) -> Element {
+fn app() -> Element {
     let count = 40;
-    cx.render(rsx! {
+    rsx! {
         svg {
             width: "1000px",
             height: "1000px",
 
-            (0..count).map(|i| {
-                let fill_hue = (i * 360)/count;
-                cx.render(
-                    rsx!{
-                        Blob {
-                            count: i*10,
-                            color: "hsla({fill_hue},80%,50%,0.05)",
-                            stroke: "rgba(0,0,0,0.01)",
-                        }
-                    }
-                )
-            })
+            for i in 0..count {
+                Blob {
+                    count: i*10,
+                    color: "hsla({(i * 360)/count},80%,50%,0.05)",
+                    stroke: "rgba(0,0,0,0.01)",
+                }
+            }
         }
-    })
+    }
 }
 
-#[derive(Props)]
-struct BlobProps<'a> {
+#[derive(Props, Clone, PartialEq)]
+struct BlobProps {
     count: usize,
-    color: &'a str,
-    stroke: &'a str,
+    color: String,
+    stroke: String,
 }
 
-fn Blob<'a>(cx: Scope<'a, BlobProps<'a>>) -> Element<'a> {
-    let count = cx.props.count;
-    let obj = use_ref(&cx, || Object {
+fn Blob(props: BlobProps) -> Element {
+    let count = props.count;
+    let mut obj = use_signal( || Object {
         points: (0..count)
             .map(|i| {
                 let f = (i as f32 * TAU - FRAC_PI_2) / count as f32;
@@ -56,8 +51,7 @@ fn Blob<'a>(cx: Scope<'a, BlobProps<'a>>) -> Element<'a> {
             .collect(),
     });
 
-    use_coroutine(&cx, |_rx: UnboundedReceiver<()>| {
-        to_owned![obj];
+    use_coroutine(move |_rx: UnboundedReceiver<()>| {
         let duration = Duration::from_millis(10);
         let mut interval = Interval::platform_new(duration);
         async move {
@@ -101,13 +95,13 @@ fn Blob<'a>(cx: Scope<'a, BlobProps<'a>>) -> Element<'a> {
     });
 
     let path = obj.read().to_string();
-    cx.render(rsx! {
+    rsx! {
         path {
             d: "{path}",
-            stroke: "{cx.props.stroke}",
-            fill: "{cx.props.color}",
+            stroke: "{props.stroke}",
+            fill: "{props.color}",
         }
-    })
+    }
 }
 
 struct Object {
